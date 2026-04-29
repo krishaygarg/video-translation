@@ -1,0 +1,16 @@
+# Python virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment / secrets
+.env
+
+# macOS junk
+.DS_Store
+
+# Audio cache (optional - remove this line if you want to push the mp3s)
+# transcripts/*.mp3
