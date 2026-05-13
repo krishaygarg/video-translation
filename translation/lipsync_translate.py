@@ -39,6 +39,11 @@ from nltk.corpus import wordnet as wn
 print("Loading translation model: Helsinki-NLP/opus-mt-en-es")
 print("(First run downloads ~300 MB.)")
 translator = pipeline("translation", model="Helsinki-NLP/opus-mt-en-es")
+# To run our custom model, comment out the code above and add this line of code
+# CUSTOM_MODEL_DIR = HERE / "custom_model_folder"
+# print(f"Loading custom translation model from: {CUSTOM_MODEL_DIR}")
+# translator = pipeline("translation", model=str(CUSTOM_MODEL_DIR))
+# Future note: Replace CUSTOM_MODEL_DIR with whatever directory we use to store the custom model
 en_dic = pyphen.Pyphen(lang="en_US")
 es_dic = pyphen.Pyphen(lang="es_ES")
 
