@@ -1,7 +1,12 @@
 # Dependencies for tts_assembly.py
-# Install with: pip install -r translation/requirements_tts.txt
+# Already in project venv: soundfile, scipy, numpy, pandas
+
+# --- gTTS fallback (no GPU, no API key) ---
+# pip install gtts
 gtts>=2.5
-soundfile>=0.12   # already installed in project venv
-scipy>=1.10       # already installed in project venv
-numpy>=1.24       # already installed in project venv
-pandas>=2.0       # already installed in project venv
+
+# --- OpenVoice target pipeline ---
+# pip install git+https://github.com/myshell-ai/OpenVoice.git
+# pip install git+https://github.com/myshell-ai/MeloTTS.git
+# After installing, download checkpoints per the OpenVoice README:
+#   git clone https://huggingface.co/myshell-ai/OpenVoiceV2 checkpoints_v2
