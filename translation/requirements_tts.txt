@@ -1,0 +1,7 @@
+# Dependencies for tts_assembly.py
+# Install with: pip install -r translation/requirements_tts.txt
+gtts>=2.5
+soundfile>=0.12   # already installed in project venv
+scipy>=1.10       # already installed in project venv
+numpy>=1.24       # already installed in project venv
+pandas>=2.0       # already installed in project venv

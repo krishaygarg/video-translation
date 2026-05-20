@@ -174,6 +174,7 @@ def process_file(path):
         print(f"  WARNING: No usable content in {path.name}")
         return []
     rows = []
+    prev_end = 0.0
     for i, ph in enumerate(phrases, 1):
         result = lipsync_translate_phrase(ph["english"])
         if result is None:
@@ -183,14 +184,20 @@ def process_file(path):
         result["phrase_start"] = round(ph["start"], 3)
         result["phrase_end"] = round(ph["end"], 3)
         result["phrase_duration"] = round(ph["end"] - ph["start"], 3)
+        result["silence_before_ms"] = round(max(0.0, ph["start"] - prev_end) * 1000, 1)
+        en_syl = result["english_syllables"]
+        es_syl = result["spanish_syllables"]
+        result["tts_rate_multiplier"] = round(es_syl / en_syl, 3) if en_syl > 0 else 1.0
         result["emotion"] = ph["emotion"] or ""
         result["emotion_confidence"] = ph["confidence"] if ph["confidence"] is not None else ""
         result["source_file"] = path.name
+        prev_end = ph["end"]
         rows.append(result)
     return rows
 
 
 COLUMNS = ["phrase_id", "clip_id", "phrase_start", "phrase_end", "phrase_duration",
+           "silence_before_ms", "tts_rate_multiplier",
            "english", "best_spanish", "english_syllables", "spanish_syllables",
            "syllable_diff", "alternatives", "emotion", "emotion_confidence", "source_file"]
 
