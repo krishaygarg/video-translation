@@ -47,5 +47,5 @@ audio_pipeline/transcripts/*
 *.pkl
 
 # Explicitly keep demo videos
-!Video1.mp4
+!data/Video1.mp4
 !results/output_video_with_bubbles.mp4

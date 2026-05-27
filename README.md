@@ -173,5 +173,5 @@ If you already have a lip-synced video (or want to add subtitles to any video) a
 ---
 
 ## 🎥 Demo Videos
-* **Original Spanish Video:** [Video1.mp4](Video1.mp4)
+* **Original Spanish Video:** [data/Video1.mp4](data/Video1.mp4)
 * **Final Synced & Bubble-Overlay Video:** [results/output_video_with_bubbles.mp4](results/output_video_with_bubbles.mp4)
