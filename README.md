@@ -1,6 +1,6 @@
-# Video Translation and Vocal Tone Preservation Pipeline
+# Video Translation Pipeline
 
-This repository is the ACM AI Spring 2026 Project. The pipeline translates spoken-English video into Spanish (or vice versa) while preserving the speaker's vocal tone and synchronizing the video's lip movements using MuseTalk.
+This repository is the ACM AI Spring 2026 Project. The pipeline translates spoken-English video into Spanish (or vice versa) while preserving the speaker's vocal tone and synchronizing the video's lip movements using MuseTalk. This project also adds video transcription in the form of speech bubbles.
 
 ## Project Structure
 The repository consists of three main components:
