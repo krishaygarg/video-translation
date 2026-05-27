@@ -33,6 +33,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Helper function to run command in conda environment if it exists, otherwise fall back to current environment
+run_in_env() {
+    ENV_NAME=$1
+    shift
+    if command -v conda &> /dev/null && conda info --envs | grep -qE "(^|[[:space:]])$ENV_NAME([[:space:]]|$)"; then
+        conda run --no-capture-output -n "$ENV_NAME" "$@"
+    else
+        "$@"
+    fi
+}
+
 echo "========================================="
 echo "Starting Spanish to English Video Translation Pipeline"
 echo "Input:  $INPUT_VIDEO"
@@ -45,7 +56,7 @@ mkdir -p "$(dirname "$OUTPUT_VIDEO")"
 # 1. Run Audio Translation & Voice Cloning (Spanish -> English)
 echo ""
 echo "[Step 1] Running Spanish to English translation & voice cloning..."
-conda run --no-capture-output -n audio_pipeline python3 audio_pipeline/pipeline_spanishtoengish.py \
+run_in_env audio_pipeline python3 audio_pipeline/pipeline_spanishtoengish.py \
     --input "$INPUT_VIDEO" \
     --output audio_pipeline/lipsync/translated_audio.wav
 
@@ -82,7 +93,7 @@ if [ "$CROP_AND_UPSCALE" = true ]; then
     CROP_ARGS="--crop_and_upscale"
 fi
 
-conda run --no-capture-output -n MuseTalk python3 -m scripts.inference \
+run_in_env MuseTalk python3 -m scripts.inference \
     --inference_config ./configs/inference/run_pipeline_temp.yaml \
     --result_dir ../results/tmp_musetalk \
     --unet_model_path ./models/musetalkV15/unet.pth \
@@ -102,19 +113,24 @@ fi
 if [ "$SPEECH_BUBBLE" = true ]; then
     echo ""
     echo "[Step 4] Applying speech bubble transcription overlay to lip-synced video..."
-    # Ensure speech_bubble environment exists
-    if ! conda info --envs | grep -qE "(^|[[:space:]])speech_bubble([[:space:]]|$)"; then
-        echo "[*] Creating 'speech_bubble' Conda environment..."
-        conda create -n speech_bubble python=3.10 -y
+    # Ensure dependencies are installed and run speech bubble script
+    if command -v conda &> /dev/null && conda info --envs | grep -qE "(^|[[:space:]])speech_bubble([[:space:]]|$)"; then
+        echo "[*] Using 'speech_bubble' Conda environment..."
+        conda run --no-capture-output -n speech_bubble pip install -r speech_bubble_transcription/requirements.txt -q
+        conda run --no-capture-output -n speech_bubble python3 speech_bubble_transcription/transcribe_bubble.py \
+            --input "$FINAL_VIDEO_PATH" \
+            --output "$OUTPUT_VIDEO" \
+            --task transcribe \
+            --model medium
+    else
+        echo "[*] Running speech bubble transcription in the current environment..."
+        pip install -r speech_bubble_transcription/requirements.txt -q
+        python3 speech_bubble_transcription/transcribe_bubble.py \
+            --input "$FINAL_VIDEO_PATH" \
+            --output "$OUTPUT_VIDEO" \
+            --task transcribe \
+            --model medium
     fi
-    # Ensure dependencies are installed in the speech_bubble environment
-    conda run --no-capture-output -n speech_bubble pip install -r speech_bubble_transcription/requirements.txt -q
-
-    conda run --no-capture-output -n speech_bubble python3 speech_bubble_transcription/transcribe_bubble.py \
-        --input "$FINAL_VIDEO_PATH" \
-        --output "$OUTPUT_VIDEO" \
-        --task transcribe \
-        --model medium
 else
     echo ""
     echo "[Step 4] Copying final video to output path..."

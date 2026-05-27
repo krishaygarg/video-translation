@@ -10,91 +10,115 @@ The repository consists of three main components:
 
 ---
 
+## 📐 Technical Architecture & Workflow
+
+The orchestration pipeline coordinates three core stages to translate, lip-sync, and subtitle the target video. The pipeline workflow is structured as follows:
+
+```mermaid
+graph TD
+    Input[Input Video] --> Step1[Audio Pipeline: Tone & Translation]
+    Step1 --> Step2[MuseTalk: Lip-Sync Generation]
+    Step2 --> Step3[Speech Bubble Transcription]
+    Step3 --> Output[Output Video]
+```
+
+---
+
+### 1. Audio Pipeline (`audio_pipeline/`)
+The audio pipeline is responsible for transcription, translation, voice cloning, and speech emotion recognition.
+
+* **Syllable-Matching Translation**: 
+  * *How it works*: The input video's Spanish speech is transcribed using **OpenAI Whisper**. The transcribed text is translated into English using the **`Helsinki-NLP/opus-mt-en-es`** transformer model. The pipeline counts the syllables of the Spanish source and compares them against 10 generated English candidate translations (produced via beam search). It selects the candidate with the closest syllable count and, if needed, swaps words with synonyms using NLTK and the Open Multilingual WordNet to fine-tune the match.
+  * *Design Rationale*: If a translated phrase is much shorter or longer than the original Spanish phrase, the lip-syncing looks highly unnatural (either the mouth moves too fast or stops moving before the audio ends). Matching syllable counts ensures that the spoken duration of the translated English audio matches the timing of the original video.
+* **Vocal Tone Preservation (OpenVoice)**:
+  * *How it works*: It extracts a voice reference embedding from the original Spanish speaker. An English TTS engine generates a base English voice recording of the translated text, and OpenVoice's zero-shot voice cloning applies the extracted speaker identity onto the generated English audio.
+  * *Design Rationale*: Preserving the original speaker's vocal tone (rather than using a generic voice actor) maintains their unique vocal identity, making the translated video feel authentic and immersive.
+* **Local Speech Emotion Recognition (SER)**:
+  * *How it works*: The pipeline resamples the audio segments to 16 kHz mono and uses the Hugging Face **`superb/hubert-large-superb-er`** model to classify vocal emotion into four primary classes: *neutral, happy, angry, sad*.
+  * *Design Rationale*: This replaces legacy web-based sentiment APIs (like MeaningCloud), allowing the entire pipeline to run locally on CPU/GPU without internet access or external API keys. It also generates emotional metadata that can be used to influence TTS vocal inflections or dynamically style speech bubble colors.
+
+---
+
+### 2. Lip-Syncing (`MuseTalk/`)
+This component synchronizes the mouth movements of the speaker in the video with the newly generated English audio.
+
+* **High-Fidelity Syncing**:
+  * *How it works*: MuseTalk is a real-time, latent-diffusion lip-syncing model (v1.5). It is conditioned on audio features extracted by a Whisper encoder and synchronizes the mouth region by editing the latent space of a pre-trained VAE.
+  * *Design Rationale*: We chose MuseTalk over older models like Wav2Lip because Wav2Lip frequently generates blurry, low-resolution mouth overlays and loses teeth/lip details. MuseTalk maintains high-fidelity textures and blends naturally with the rest of the face.
+* **Face Alignment & Margin Tuning**:
+  * *How it works*: Configures bounding box shifts (`bbox_shift`) and extra vertical padding margin (`extra_margin`).
+  * *Design Rationale*: During wide mouth movements or expressions, standard face detection boxes can crop out parts of the chin or jawline, creating visible blending borders. Modifying the vertical crop boundary prevents these artifacts.
+* **Unified Face Crop & Super-Resolution (`--crop-upscale`)**:
+  * *How it works*: If enabled, **MTCNN** detects facial coordinates across sampled frames to define a single, unified Region of Interest (ROI) for the face. The script crops the face region, upscales it by $4\times$ using the **FSRCNN** super-resolution model (with Lanczos4 interpolation as a fallback), runs MuseTalk inference on this high-res crop, and downscales the final frame back onto the original video.
+  * *Design Rationale*: In full-body or medium-shot videos, the face occupies a small percentage of pixels. Direct lip-syncing yields a pixelated mouth. Moving face ROIs between frames also causes rendering jitter. Establishing a unified ROI and upscaling the face crop ensures that the lips remain sharp and high-definition without flickering or boundary lines.
+
+---
+
+### 3. Speech Bubble Subtitles (`speech_bubble_transcription/`)
+This component tracks the speaker and overlays animated, comic-style speech bubbles.
+
+* **Speaker Feature Tracking**:
+  * *How it works*: Uses **MediaPipe Face Landmarker** to track the 3D landmark coordinates of the speaker's nose frame-by-frame.
+  * *Design Rationale*: We track the nose because it acts as the stable center of the face, keeping the speech bubble anchored relative to head tilts and movements.
+* **Jitter Control (Deadzone & Low-pass Filters)**:
+  * *How it works*: Applies a deadzone filter that ignores minor movements below 8 pixels, coupled with a low-pass filter (smoothing factor `0.08`).
+  * *Design Rationale*: Raw face tracking is subject to subtle high-frequency coordinate noise, which makes overlaid elements shake. The deadzone and low-pass filter smooth out this micro-jitter, making the bubble float naturally.
+* **Comic-Style Subtitles**:
+  * *How it works*: Whispers the audio to extract text and timestamps, wraps the text within a specified width, and draws animated speech bubbles that point directly to the speaker's face.
+  * *Design Rationale*: Standard bottom-of-screen subtitles can feel detached from the speaker, particularly when there are multiple people. Positioning bubbles directly next to the speaker makes the dialogue attribution intuitive and gives the video a premium, dynamic look.
+
+---
+
 ## 🛠️ Setup Instructions
 
 ### 1. Pre-requisites
 - **Operating System:** Linux with GPU (CUDA support).
-- **Miniconda/Conda** installed on the system.
-- **FFmpeg** installed and accessible in the system PATH.
+- **FFmpeg** installed and accessible in your system PATH.
+- **Python 3.10+** (either in your base Conda environment or any active environment).
 
-### 2. Audio Pipeline Setup
-For detailed setup of tone analysis and translation:
-1. Navigate to the `audio_pipeline` directory:
-   ```bash
-   cd audio_pipeline
-   ```
-2. Read the instructions in [audio_pipeline/README.md](audio_pipeline/README.md) to set up the necessary packages and dependencies.
+### 2. Install Dependencies
+You can install all dependencies directly into your current active/base environment:
 
-### 3. MuseTalk Setup
-To prepare the Python environment and download the pretrained weights for the lip-sync component:
-
-#### A. Create the Conda Environment
-Use the dedicated `MuseTalk` environment:
 ```bash
-conda create -n MuseTalk python==3.10
-conda activate MuseTalk
-```
-
-#### B. Install PyTorch and Basic Dependencies
-```bash
-# Install PyTorch 2.0.1 with CUDA support
+# 1. Install PyTorch with CUDA 11.8 support
 pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 
-# Navigate to MuseTalk and install requirements
-cd MuseTalk
-pip install -r requirements.txt
-```
+# 2. Install MuseTalk requirements
+pip install -r MuseTalk/requirements.txt
 
-#### C. Install MMLab Ecosystem
-```bash
+# 3. Install MMLab Ecosystem
 pip install --no-cache-dir -U openmim
-mim install mmengine
-mim install "mmcv==2.0.1"
-mim install "mmdet==3.1.0"
-mim install "mmpose==1.1.0"
-```
+mim install mmengine "mmcv==2.0.1" "mmdet==3.1.0" "mmpose==1.1.0"
 
-#### D. Download Model Weights
-We have configured a download script that bypasses the system's global CLI wrappers. Run the following command from the `MuseTalk/` directory:
-```bash
-bash download_weights.sh
+# 4. Install audio pipeline and speech bubble requirements
+pip install -r speech_bubble_transcription/requirements.txt
+pip install pyphen nltk sentencepiece sacremoses transformers scipy pandas soundfile
 ```
-This script downloads all required model weights:
-- MuseTalk & MuseTalk V1.5 UNet weights
-- StabilityAI's `sd-vae-ft-mse`
-- OpenAI's `whisper-tiny`
-- DWPose
-- LatentSync syncnet weights
-
-The model weights will be arranged automatically in `MuseTalk/models/`.
 
 > [!IMPORTANT]
 > The dependencies require `huggingface-hub` to be strictly within `<1.0, >=0.19.3` due to a transformers constraint. The setup will pin and run with `huggingface-hub==0.36.2` to ensure compatibility.
 
+### 3. Download Model Weights
+Navigate to the `MuseTalk/` directory and run the weight downloader:
+```bash
+cd MuseTalk
+bash download_weights.sh
+cd ..
+```
+This script downloads all required model weights (MuseTalk/MuseTalk v1.5, StabilityAI's sd-vae, Whisper, DWPose, etc.) into `MuseTalk/models/`.
+
 ---
 
 ## 🚀 Running Inference
-To run a lip-syncing task using the `MuseTalk` conda environment, navigate to the `MuseTalk/` directory and execute:
+To run a test lip-syncing task directly:
 
 ```bash
-conda run -n MuseTalk bash inference.sh v1.5 normal
+cd MuseTalk
+bash inference.sh v1.5 normal
+cd ..
 ```
 
-This runs inference with MuseTalk v1.5 using the config file at `configs/inference/test.yaml`.
-
-### Customizing Tasks
-To add or modify tasks, update the YAML configuration file `MuseTalk/configs/inference/test.yaml`:
-```yaml
-task_0:
-  video_path: "data/video/yongen.mp4"
-  audio_path: "data/audio/yongen.wav"
-  bbox_shift: 0
-task_1:
-  video_path: "data/video/yongen.mp4"
-  audio_path: "data/audio/eng.wav"
-  bbox_shift: 0
-```
-Output videos are compiled and saved in `MuseTalk/results/test/v15/`.
+This runs inference using the configuration at `MuseTalk/configs/inference/test.yaml`.
 
 ---
 
