@@ -1,16 +1,50 @@
-# Python virtual environment
-venv/
-
-# Python cache files
-__pycache__/
-*.pyc
-*.pyo
-
-# Environment / secrets
-.env
-
-# macOS junk
+# System Files
 .DS_Store
+Thumbs.db
 
-# Audio cache (optional - remove this line if you want to push the mp3s)
-# transcripts/*.mp3
+# IDEs and Editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Python Caches & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+.gradio/
+
+# Model Files & Large Downloads
+face_landmarker.task
+MuseTalk/models/
+audio_pipeline/OpenVoice_repo/
+
+# Data and Outputs
+results/*
+MuseTalk/results/
+MuseTalk/data/video/*
+!MuseTalk/data/video/.gitkeep
+MuseTalk/data/audio/*
+!MuseTalk/data/audio/.gitkeep
+audio_pipeline/lipsync/*
+!audio_pipeline/lipsync/.gitkeep
+audio_pipeline/transcripts/*
+!audio_pipeline/transcripts/.gitkeep
+
+# Temporary / Generated Video Files
+*.mp4
+*.wav
+*.avi
+*.mov
+*.pkl
+
+# Explicitly keep demo videos
+!Video1.mp4
+!results/output_video_with_bubbles.mp4
