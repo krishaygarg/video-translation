@@ -25,6 +25,7 @@ env/
 face_landmarker.task
 MuseTalk/models/
 audio_pipeline/OpenVoice_repo/
+audio_pipeline/openvoice/checkpoints/
 
 # Data and Outputs
 results/*
