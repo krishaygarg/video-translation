@@ -1,0 +1,3 @@
+[submodule "MuseTalk"]
+	path = MuseTalk
+	url = https://github.com/krishaygarg/MuseTalk.git
