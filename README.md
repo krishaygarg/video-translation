@@ -2,6 +2,17 @@
 
 This repository is the ACM AI Spring 2026 Project. The pipeline translates spoken-English video into Spanish (or vice versa) while preserving the speaker's vocal tone and synchronizing the video's lip movements using MuseTalk.
 
+## 🎥 Quick Demo & Results
+
+See the pipeline in action! Below are the demo videos showing the input (Spanish) and the translated/lip-synced output with tracking speech bubbles:
+
+| Original Spanish Input Video | Final Translated & Lip-Synced Output (with Speech Bubbles) |
+| :---: | :---: |
+| **[Original Video (data/Video1.mp4)](data/Video1.mp4)** | **[Translated & Lip-Synced Video (results/output_video_with_bubbles.mp4)](results/output_video_with_bubbles.mp4)** |
+| <video src="data/Video1.mp4" width="360" controls></video> | <video src="results/output_video_with_bubbles.mp4" width="360" controls></video> |
+
+---
+
 ## Project Structure
 The repository consists of three main components:
 1. **`audio_pipeline/`** — Handles speech transcripts, translation (English to Spanish, Spanish to English), and vocal tone analysis/classification.
@@ -170,8 +181,4 @@ If you already have a lip-synced video (or want to add subtitles to any video) a
 * `--model` (Default: `medium`): Whisper model size (`tiny`, `base`, `small`, `medium`, `large`).
 * See [speech_bubble_transcription/README.md](speech_bubble_transcription/README.md) for more customization options (such as bubble colors, font scales, tracking parameters, offsets, and deadzones).
 
----
 
-## 🎥 Demo Videos
-* **Original Spanish Video:** [data/Video1.mp4](data/Video1.mp4)
-* **Final Synced & Bubble-Overlay Video:** [results/output_video_with_bubbles.mp4](results/output_video_with_bubbles.mp4)
