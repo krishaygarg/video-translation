@@ -9,9 +9,9 @@ See the pipeline in action! Below are the demo videos showing the input (Spanish
 | Original Spanish Input Video | Final Translated & Lip-Synced Output (with Speech Bubbles) |
 | :---: | :---: |
 
-
-| **[Original Video (data/Video1.mp4)](data/Video1.mp4)** | **[Translated & Lip-Synced Video (results/output_video_with_bubbles.mp4)](results/output_video_with_bubbles.mp4)** |
-| <video src="[data/Video1.mp4](https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d)" width="360" controls></video> | <video src="results/output_video_with_bubbles.mp4" width="360" controls></video> |
+https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d
+| **Original Video** | **Translated & Lip-Synced Video** |
+| https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d | <video src="results/output_video_with_bubbles.mp4" width="360" controls></video> |
 
 ---
 
