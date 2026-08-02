@@ -4,14 +4,15 @@ This repository is the ACM AI Spring 2026 Project. The pipeline translates spoke
 
 ## 🎥 Quick Demo & Results
 
-See the pipeline in action! Below are the demo videos showing the input (Spanish) and the translated/lip-synced output with tracking speech bubbles:
+See the pipeline in action! Below are the demo videos showing the input (Spanish) and the translated/lip-synced output:
 
-| Original Spanish Input Video | Final Translated & Lip-Synced Output (with Speech Bubbles) |
-| :---: | :---: |
+### 1. Original Spanish Input Video
 
 https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d
-| **Original Video** | **Translated & Lip-Synced Video** |
-| https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d | <video src="results/output_video_with_bubbles.mp4" width="360" controls></video> |
+
+### 2. Translated & Lip-Synced Output (with Speech Bubbles)
+
+*(Drag and drop `results/output_video_with_bubbles.mp4` here in GitHub's web editor to display the playable video)*
 
 ---
 
