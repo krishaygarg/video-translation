@@ -10,9 +10,13 @@ See the pipeline in action! Below are the demo videos showing the input (Spanish
 
 https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d
 
-### 2. Translated & Lip-Synced Output (with Speech Bubbles)
+### 2. Translated & Lip-Synced Output
 
 https://github.com/user-attachments/assets/2c9424c9-2ae2-4802-9ecb-54118aa64aa8
+
+### 3. Translated & Lip-Synced Output (with speech bubbles)
+
+https://github.com/user-attachments/assets/ae119a84-5b02-4403-8df2-dedc7787d3e6
 
 ---
 
