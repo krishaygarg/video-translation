@@ -1,4 +1,4 @@
-# Video Translation and Vocal Tone Preservation Pipeline
+# Video Translation and Lipsync Pipeline
 
 This repository is the ACM AI Spring 2026 Project. The pipeline translates spoken-English video into Spanish (or vice versa) while preserving the speaker's vocal tone and synchronizing the video's lip movements using MuseTalk.
 
@@ -12,7 +12,7 @@ https://github.com/user-attachments/assets/e8e32256-6762-49c7-bc4a-96cd3d4f879d
 
 ### 2. Translated & Lip-Synced Output (with Speech Bubbles)
 
-*(Drag and drop `results/output_video_with_bubbles.mp4` here in GitHub's web editor to display the playable video)*
+https://github.com/user-attachments/assets/2c9424c9-2ae2-4802-9ecb-54118aa64aa8
 
 ---
 
