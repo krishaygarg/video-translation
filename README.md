@@ -30,7 +30,7 @@ The repository consists of three main components:
 
 ## 📐 Technical Architecture & Workflow
 
-The orchestrator has been upgraded from a sequential execution model to a **High-Performance Distributed Multi-GPU Pipelined Translation Engine**. 
+The orchestration pipeline is structured to support concurrent execution across multiple GPUs and threads. 
 
 ### 1. Legacy Sequential Architecture (Baseline)
 In the legacy pipeline, each component ran sequentially, causing the GPU and CPU to sit idle during each other's cycles:
@@ -44,8 +44,8 @@ graph LR
 
 ---
 
-### 2. Pipelined & Distributed Multi-GPU Architecture (Recommended)
-The new optimized architecture leverages concurrent CPU threads and physical GPU distribution (`--gpus 0,1`) to overlap computational stages and maximize hardware utilization:
+### 2. Concurrent Multi-GPU Architecture
+This architecture distributes operations across physical GPUs (via `--gpus 0,1`) and CPU worker threads to overlap computational stages:
 
 ```mermaid
 graph TD
@@ -82,13 +82,13 @@ graph TD
     Concat --> Output[Final Lip-Synced Output Video]
 ```
 
-### Systems Engineering breakdown:
-1. **Concurrent Preparation (Zero-Latency Cold Start):** 
-   Step 1's audio processing (Whisper transcribing + OpenVoice tone cloning) runs on **GPU 1** while Step 2's video pre-processing (MediaPipe landmarking + BiSeNet face segmentation) runs on **GPU 0** in parallel. The cold-start landmark preparation overhead is completely hidden.
+### Technical Breakdown:
+1. **Parallelized Preparation Phase:**
+   Step 1 (Whisper transcription, translation, and OpenVoice cloning) executes on **GPU 1** in parallel with Step 2's video pre-processing (face landmark detection and jaw-mask generation) on **GPU 0**. This hides the landmark extraction latency.
 2. **Distributed Split Rendering:**
    Once prep completes, the frame workload is split in half. **GPU 0** and **GPU 1** concurrently execute UNet and VAE inference on their respective video slices, cutting generation time in half.
-3. **Queue-Based Thread Pipelining:**
-   On each GPU, the neural forward pass runs on the GPU thread and dumps raw mouth patches into a thread-safe CPU queue. A concurrent CPU worker thread pops them off, resizes them, blends them using natural jaw contours, and writes them to disk. The GPU is kept at **100% compute capacity**, never waiting on CPU I/O.
+3. **Thread-Pipelined Rendering Queue:**
+   For each GPU, a dedicated rendering thread runs the UNet and VAE forward pass and pushes reconstructed mouth patches to a thread-safe memory queue. A concurrent CPU worker thread pops the patches, resizes them, blends them using face-parsing jaw masks, and writes the frames to the video file, overlapping CPU-bound I/O with GPU execution.
 4. **Stream Concatenation:**
    Both silent segments are merged instantly at the stream-copy level via `ffmpeg` (taking $<0.1\text{s}$), and the generated audio track is multiplexed into the final H.264 video.
 
@@ -192,13 +192,13 @@ This runs inference using the configuration at `MuseTalk/configs/inference/test.
 
 ---
 
-## ⚡ High-Performance Distributed & Pipelined Translation Pipeline (Recommended)
-We provide an optimized, single-process, multi-GPU and queue-pipelined orchestration script `run_pipeline_optimized.sh`. This engine maximizes performance under a strict **0 MB idle VRAM footprint** constraint (all model weights are cleared from GPUs upon completion).
+## 🔄 Pipelined & Distributed Translation Pipeline
+We provide a single-process, multi-GPU orchestration script `run_pipeline_optimized.sh`. This script runs under a strict **0 MB idle VRAM footprint** constraint (all model weights are cleared from GPUs upon exit).
 
 ### Performance Metrics (30s Video)
 * **Legacy Sequential Baseline:** ~290s
-* **Optimized Engine (Cold Start):** **85.92s** (⚡ **3.4x overall speedup**)
-* **Optimized Engine (Hot Run / Cached):** **~35s** (⚡ **8.3x overall speedup**)
+* **Optimized Engine (Cold Start):** **85.92s** (3.4x overall speedup)
+* **Optimized Engine (Hot Run / Cached):** **~35s** (8.3x overall speedup)
 
 ### Usage
 ```bash
