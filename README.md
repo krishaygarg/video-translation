@@ -30,15 +30,67 @@ The repository consists of three main components:
 
 ## 📐 Technical Architecture & Workflow
 
-The orchestration pipeline coordinates three core stages to translate, lip-sync, and subtitle the target video. The pipeline workflow is structured as follows:
+The orchestration pipeline is structured to support concurrent execution across multiple GPUs and threads. 
+
+### 1. Legacy Sequential Architecture (Baseline)
+In the legacy pipeline, each component ran sequentially, causing the GPU and CPU to sit idle during each other's cycles:
+```mermaid
+graph LR
+    Input[Input Video] --> S1[Step 1: Audio Prep]
+    S1 --> S2[Step 2: Lip-Sync]
+    S2 --> S3[Step 3: Speech Bubbles]
+    S3 --> Output[Final Video]
+```
+
+---
+
+### 2. Concurrent Multi-GPU Architecture
+This architecture distributes operations across physical GPUs (via `--gpus 0,1`) and CPU worker threads to overlap computational stages:
 
 ```mermaid
 graph TD
-    Input[Input Video] --> Step1[Audio Pipeline: Tone & Translation]
-    Step1 --> Step2[MuseTalk: Lip-Sync Generation]
-    Step2 --> Step3[Speech Bubble Transcription]
-    Step3 --> Output[Output Video]
+    %% Input Stage
+    Input[Input Video] -->|Launch Pipeline| Fork{Fork Workloads}
+
+    %% Concurrent Prep Phase
+    Fork -->|Assign to GPU 1| AudioPrep[Step 1: Audio Translation & Voice Clone]
+    Fork -->|Assign to GPU 0| GeometryPrep[Step 2: Face Landmarks & Jaw-Masks]
+
+    %% Synchronization Barrier
+    AudioPrep -->|English Audio Ready| SyncGate[Barrier Synchronization]
+    GeometryPrep -->|Face Geometry Ready| SyncGate
+
+    %% Distributed Rendering Phase
+    SyncGate -->|Frames 1 to N/2| GPU0_Engine[GPU 0 Render Thread]
+    SyncGate -->|Frames N/2+1 to N| GPU1_Engine[GPU 1 Render Thread]
+
+    %% Intra-GPU Pipelining (GPU 0)
+    subgraph GPU 0 Render Pipeline
+        GPU0_Engine -->|UNet + VAE| GPU0_Queue[Reconstruction Queue]
+        GPU0_Queue -->|Concurrent CPU Blend| GPU0_Blend[CPU Blending & Writing]
+    end
+
+    %% Intra-GPU Pipelining (GPU 1)
+    subgraph GPU 1 Render Pipeline
+        GPU1_Engine -->|UNet + VAE| GPU1_Queue[Reconstruction Queue]
+        GPU1_Queue -->|Concurrent CPU Blend| GPU1_Blend[CPU Blending & Writing]
+    end
+
+    %% Final Merge
+    GPU0_Blend -->|Segment 1 Video| Concat[FFmpeg Lossless Concat & Audio Merge]
+    GPU1_Blend -->|Segment 2 Video| Concat
+    Concat --> Output[Final Lip-Synced Output Video]
 ```
+
+### Technical Breakdown:
+1. **Parallelized Preparation Phase:**
+   Step 1 (Whisper transcription, translation, and OpenVoice cloning) executes on **GPU 1** in parallel with Step 2's video pre-processing (face landmark detection and jaw-mask generation) on **GPU 0**. This hides the landmark extraction latency.
+2. **Distributed Split Rendering:**
+   Once prep completes, the frame workload is split in half. **GPU 0** and **GPU 1** concurrently execute UNet and VAE inference on their respective video slices, cutting generation time in half.
+3. **Thread-Pipelined Rendering Queue:**
+   For each GPU, a dedicated rendering thread runs the UNet and VAE forward pass and pushes reconstructed mouth patches to a thread-safe memory queue. A concurrent CPU worker thread pops the patches, resizes them, blends them using face-parsing jaw masks, and writes the frames to the video file, overlapping CPU-bound I/O with GPU execution.
+4. **Stream Concatenation:**
+   Both silent segments are merged instantly at the stream-copy level via `ffmpeg` (taking $<0.1\text{s}$), and the generated audio track is multiplexed into the final H.264 video.
 
 ---
 
@@ -140,13 +192,13 @@ This runs inference using the configuration at `MuseTalk/configs/inference/test.
 
 ---
 
-## ⚡ High-Performance Distributed & Pipelined Translation Pipeline (Recommended)
-We provide an optimized, single-process, multi-GPU and queue-pipelined orchestration script `run_pipeline_optimized.sh`. This engine maximizes performance under a strict **0 MB idle VRAM footprint** constraint (all model weights are cleared from GPUs upon completion).
+## 🔄 Pipelined & Distributed Translation Pipeline
+We provide a single-process, multi-GPU orchestration script `run_pipeline_optimized.sh`. This script runs under a strict **0 MB idle VRAM footprint** constraint (all model weights are cleared from GPUs upon exit).
 
 ### Performance Metrics (30s Video)
 * **Legacy Sequential Baseline:** ~290s
-* **Optimized Engine (Cold Start):** **85.92s** (⚡ **3.4x overall speedup**)
-* **Optimized Engine (Hot Run / Cached):** **~35s** (⚡ **8.3x overall speedup**)
+* **Optimized Engine (Cold Start):** **85.92s** (3.4x overall speedup)
+* **Optimized Engine (Hot Run / Cached):** **~35s** (8.3x overall speedup)
 
 ### Usage
 ```bash
