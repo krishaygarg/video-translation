@@ -32,14 +32,15 @@ The repository consists of three main components:
 
 The orchestration pipeline is structured to support concurrent execution across multiple GPUs and threads. 
 
-### 1. Legacy Sequential Architecture (Baseline)
-In the legacy pipeline, each component ran sequentially, causing the GPU and CPU to sit idle during each other's cycles:
+### 1. Logical Video Translation Flow
+The translation pipeline processes the source video through the following sequence of operations:
 ```mermaid
 graph LR
-    Input[Input Video] --> S1[Step 1: Audio Prep]
-    S1 --> S2[Step 2: Lip-Sync]
-    S2 --> S3[Step 3: Speech Bubbles]
-    S3 --> Output[Final Video]
+    Input[Input Video] --> S1[1. Transcription & Syllable-Matching Translation]
+    S1 --> S2[2. Tone-Preserved Voice Cloning]
+    S2 --> S3[3. MuseTalk Lip-Sync Generation]
+    S3 --> S4[4. MediaPipe Tracking & Speech Bubbles]
+    S4 --> Output[Final Translated Video]
 ```
 
 ---
